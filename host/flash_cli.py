@@ -51,6 +51,8 @@ def main(argv: list[str] | None = None) -> int:
                            request_id=args.request_id, response_id=args.response_id) as link:
             client = UdsClient(link, timeouts, log=lambda m: print(m, file=sys.stderr))
             if args.command == "status":
+                mode = client.get_mode()
+                print(f"设备当前模式：{'APP' if mode == 0 else 'Bootloader'}")
                 print(f"设备提交的固件版本：0x{client.get_version():08X}")
                 print("注意：该版本仅由元数据CRC验证；完整APP CRC需通过0x31检查。")
                 return 0

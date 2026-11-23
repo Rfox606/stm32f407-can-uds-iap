@@ -17,7 +17,7 @@ BRIDGE = os.environ.get("IAP_UDS_BRIDGE")
 
 def image_file(directory: Path, length: int) -> Path:
     data = bytearray(((i * 71 + 19) & 0xFF) for i in range(length))
-    struct.pack_into("<II", data, 0, 0x20020000, APP_BASE + 0x21)
+    struct.pack_into("<II", data, 0, 0x2001FFC0, APP_BASE + 0x21)
     p = directory / f"app_{length}.bin"
     p.write_bytes(data)
     return p
@@ -44,7 +44,7 @@ class FirmwareTests(unittest.TestCase):
             p = image_file(Path(d), 530)
             f = Firmware.open(p)
             self.assertEqual(len(f.content), 530)
-            self.assertEqual(f.initial_msp, 0x20020000)
+            self.assertEqual(f.initial_msp, 0x2001FFC0)
             self.assertEqual(f.reset_handler, APP_BASE + 0x21)
             self.assertEqual(len(f.sha256), 64)
             data = bytearray(p.read_bytes())
@@ -64,14 +64,16 @@ class FirmwareTests(unittest.TestCase):
         self.assertEqual(ctx.exception.nrc, 0x73)
 
     def test_no_blind_retry_on_download_timeout(self) -> None:
-        link = Stub([b"\x50\x02\x00\x32\x01\xF4", None])
+        link = Stub([b"\x62\xF1\x92\x00\x00\x00\x01",
+                     b"\x50\x02\x00\x32\x01\xF4", None])
         with tempfile.TemporaryDirectory() as d:
             f = Firmware.open(image_file(Path(d), 256))
             with self.assertRaises(RequestTimeout):
                 UdsClient(link).upgrade(f, version=1, retries=3)
-        self.assertEqual(len(link.sent), 2)
-        self.assertEqual(link.sent[0], b"\x10\x02")
-        self.assertEqual(link.sent[1][:3], b"\x34\x00\x44")
+        self.assertEqual(len(link.sent), 3)
+        self.assertEqual(link.sent[0], b"\x22\xF1\x92")
+        self.assertEqual(link.sent[1], b"\x10\x02")
+        self.assertEqual(link.sent[2][:3], b"\x34\x00\x44")
 
 
 @unittest.skipUnless(BRIDGE, "需要C协议桥接程序，CTest配置IAP_UDS_BRIDGE")

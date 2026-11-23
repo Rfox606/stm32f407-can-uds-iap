@@ -123,6 +123,37 @@ class UdsClient:
                 raise UpgradeError(f"0x{sid:02X}收到非预期响应：{response.hex(' ')}")
             return response
 
+    def get_mode(self) -> int:
+        """厂家定义的F192：0=正常APP，1=Bootloader。"""
+        r = self.request(b"\x22\xF1\x92")
+        if len(r) != 7 or r[:3] != b"\x62\xF1\x92":
+            raise UpgradeError(f"固件模式查询响应不正确：{r.hex(' ')}")
+        mode = int.from_bytes(r[3:7], "big")
+        if mode not in (0, 1):
+            raise UpgradeError(f"未定义的固件运行模式：{mode}")
+        return mode
+
+    def enter_programming(self, reboot_timeout_s: float = 8.0) -> None:
+        mode = self.get_mode()
+        if mode == 0:
+            self.log("设备在正常APP模式，发送编程会话请求以进入Bootloader")
+            r = self.request(b"\x10\x02")
+            if len(r) != 6 or r[:2] != b"\x50\x02":
+                raise UpgradeError("APP未确认进入Bootloader")
+            deadline = time.monotonic() + reboot_timeout_s
+            while time.monotonic() < deadline:
+                try:
+                    if self.get_mode() == 1:
+                        break
+                except (RequestTimeout, UdsNegativeResponse, UpgradeError):
+                    pass  # software reset期间暂时无法回应；只重试只读查询
+                time.sleep(0.15)
+            else:
+                raise RequestTimeout("APP软件交权后未能在指定时间内检测到Bootloader")
+        r = self.request(b"\x10\x02")
+        if len(r) != 6 or r[:2] != b"\x50\x02":
+            raise UpgradeError("进入Bootloader编程会话失败或响应长度错误")
+
     def get_version(self) -> int:
         response = self.request(DID_VERSION)
         if len(response) != 7 or response[:3] != b"\x62\xF1\x90":
@@ -142,9 +173,7 @@ class UdsClient:
         if not 0 <= retries <= 10:
             raise ValueError("重试次数须在0～10之间")
         total = len(firmware.content)
-        r = self.request(b"\x10\x02")
-        if len(r) != 6 or r[:2] != b"\x50\x02":
-            raise UpgradeError("进入编程会话失败或响应长度错误")
+        self.enter_programming()
 
         req = b"\x34\x00\x44" + APP_BASE.to_bytes(4, "big") + total.to_bytes(4, "big")
         r = self.request(req)
