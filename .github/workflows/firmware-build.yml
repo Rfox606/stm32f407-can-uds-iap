@@ -1,0 +1,25 @@
+name: stm32f407-cross-build
+on:
+  push:
+  pull_request:
+jobs:
+  gcc-arm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 安装ARM交叉编译器
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi binutils-arm-none-eabi
+      - name: 编译Bootloader和APP并检查向量表
+        run: bash tools/build_firmware.sh
+      - name: 保存编译与反汇编结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: stm32f407-arm-build
+          path: |
+            build-arm/*.elf
+            build-arm/*.bin
+            build-arm/*.map
+            build-arm/*.disasm.txt
+          retention-days: 14
