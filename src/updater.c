@@ -95,6 +95,16 @@ iap_result_t iap_updater_finish(iap_updater_t *up) {
         pos += (uint32_t)n;
     }
     if ((crc ^ 0xFFFFFFFFu) != up->expected_crc) return IAP_ERR_CRC;
+    /* A valid CRC alone does not make an image executable.
+     * Reject invalid Cortex-M vector words BEFORE committing metadata. */
+    uint32_t vectors[2];
+    if (up->flash.read(up->flash.ctx,IAP_APP_BASE,vectors,sizeof(vectors))!=0)
+        return IAP_ERR_FLASH;
+    uint32_t entry=vectors[1]&~1u;
+    if (vectors[0]<IAP_SRAM_BASE || vectors[0]>IAP_SRAM_END ||
+        (vectors[0]&3u)!=0u || (vectors[1]&1u)==0u ||
+        entry<IAP_APP_BASE || (uint64_t)entry>=(uint64_t)IAP_APP_BASE+up->expected_size)
+        return IAP_ERR_ARG;
     rec.image_size = up->expected_size;
     rec.image_crc32 = up->expected_crc;
     rec.version = up->version;

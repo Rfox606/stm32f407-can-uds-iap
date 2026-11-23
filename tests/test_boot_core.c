@@ -101,8 +101,12 @@ static int test_commit_failure(void){
 static int test_bad_reset_vector(void){
     uint8_t image[256];iap_flash_t f;uint32_t bad_reset=0x08000201u;
     fixture(image,sizeof(image));memcpy(image+4,&bad_reset,4u);
-    CHECK(program_image(image,sizeof(image),iap_crc32(image,sizeof(image)))==0);
+    iap_updater_t up;
     f=mock_flash_ops(&flash_mem);
+    iap_updater_init(&up,f);
+    CHECK(iap_updater_begin(&up,sizeof(image),iap_crc32(image,sizeof(image)),1u)==IAP_OK);
+    CHECK(iap_updater_write(&up,0u,image,sizeof(image))==IAP_OK);
+    CHECK(iap_updater_finish(&up)==IAP_ERR_ARG);
     CHECK(iap_boot_select(&f)==IAP_BOOT_RECOVERY);
     return 0;
 }
