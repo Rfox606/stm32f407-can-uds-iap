@@ -24,6 +24,6 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *req, size_t len,
  * Does one Flash sector erase then returns either 7F 34 78 or final 74 response.
  * Returns 1 if a response was produced, 0 if no erase was pending.
  */
-int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len);
+int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms);
 void uds_boot_tick(uds_boot_t *b, uint32_t now_ms);
 #endif

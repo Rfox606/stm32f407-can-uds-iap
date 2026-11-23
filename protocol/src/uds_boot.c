@@ -55,7 +55,6 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
         if (q[1]==1u) reset_session(b);
         else b->programming=1u;
         out[0]=0x50u;out[1]=q[1];out[2]=0u;out[3]=50u;
-        out[4]=0x13u;out[5]=0x88u; /* P2*=5000ms in 10ms units? Spec P2* uses 10ms units => 5000ms = 500 = 0x01F4. */
         out[4]=0x01u;out[5]=0xF4u;
         *o=6u;break;
     }
@@ -147,10 +146,11 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
     }
     return 0;
 }
-int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len) {
+int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms) {
     iap_result_t rc;
     if (!b || !out || !out_len || !b->busy_erase) return 0;
     rc=iap_updater_erase_step(&b->updater);
+    b->last_activity_ms = now_ms; /* S3 starts after lengthy erase, not before it. */
     if (rc==IAP_MORE) nrc(0x34u,NRC_PENDING,out,out_len);
     else {
         b->busy_erase=0u;

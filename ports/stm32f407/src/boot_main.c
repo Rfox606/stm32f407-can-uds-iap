@@ -54,7 +54,7 @@ int main(void) {
          * 0x78 or final 0x74 response is sent. The sender must wait for 0x74. */
         if (diagnostic.busy_erase && isotp_tx_idle(&transport) &&
             bxcan_tx_complete()==1) {
-            if (uds_boot_erase_step(&diagnostic,response,&response_len)>0) {
+            if (uds_boot_erase_step(&diagnostic,response,&response_len,bxcan_now_ms())>0) {
                 (void)isotp_send(&transport,response,response_len,bxcan_now_ms());
             }
         }
