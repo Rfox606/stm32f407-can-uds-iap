@@ -1,8 +1,10 @@
 /* STM32F407VG: Bootloader Flash 0..3 (64K), SRAM1+2 128K. */
+/* Last 64 bytes of standard SRAM are reserved for APP->Bootloader mailbox.
+ * Both firmwares must use this same reduced stack/memory region. */
 ENTRY(Reset_Handler)
 MEMORY {
   FLASH (rx)  : ORIGIN = 0x08000000, LENGTH = 64K
-  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+  RAM   (rwx) : ORIGIN = 0x20000000, LENGTH = 128K - 64
 }
 _estack = ORIGIN(RAM) + LENGTH(RAM);
 SECTIONS {

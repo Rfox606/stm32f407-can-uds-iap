@@ -62,7 +62,7 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
     }
     case 0x22u: { /* ReadDataByIdentifier; F190=4B image version, F191=state/progress */
         if (n!=3u) { nrc(sid,NRC_LENGTH,out,o);break; }
-        if (q[1]!=0xF1u || (q[2]!=0x90u && q[2]!=0x91u)) { nrc(sid,NRC_RANGE,out,o);break; }
+        if (q[1]!=0xF1u || (q[2]!=0x90u && q[2]!=0x91u && q[2]!=0x92u)) { nrc(sid,NRC_RANGE,out,o);break; }
         out[0]=0x62u;out[1]=q[1];out[2]=q[2];
         if (q[2]==0x90u) {
             /* Read ONLY metadata for a quick DID response; 0x31 verifies the entire image. */
@@ -73,6 +73,9 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
                 iap_crc32(&rec,offsetof(iap_image_record_t,record_crc32))==rec.record_crc32)
                 ver=rec.version;
             put32(out+3,ver);*o=7u;
+        } else if (q[2]==0x92u) {
+            put32(out+3,1u); /* Bootloader mode */
+            *o=7u;
         } else {
             out[3]=(uint8_t)b->updater.state;
             out[4]=(uint8_t)(b->updater.written>>16);

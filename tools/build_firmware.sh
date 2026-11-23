@@ -15,7 +15,8 @@ fi
 SHARED=("${ROOT}/ports/stm32f407/src/startup_stm32f407.S" \
         "${ROOT}/ports/stm32f407/src/clock.c" \
         "${ROOT}/ports/stm32f407/src/board.c" \
-        "${ROOT}/ports/stm32f407/src/runtime_mem.c")
+        "${ROOT}/ports/stm32f407/src/runtime_mem.c" \
+        "${ROOT}/ports/stm32f407/src/boot_handoff.c")
 for TARGET in boot app; do
   SOURCES=("${SHARED[@]}")
   if [[ "$TARGET" == boot ]]; then
@@ -27,7 +28,11 @@ for TARGET in boot app; do
       "${ROOT}/protocol/src/isotp.c" "${ROOT}/protocol/src/uds_boot.c" \
       "${ROOT}/ports/stm32f407/src/bxcan.c")
   else
-    SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c")
+    SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c" \
+      "${ROOT}/ports/stm32f407/src/app_uds.c" \
+      "${ROOT}/ports/stm32f407/src/bxcan.c" \
+      "${ROOT}/protocol/src/isotp.c" \
+      "${ROOT}/src/crc32.c")
   fi
   echo "==> Building ${TARGET} with ${CC}"
   "$CC" "${COMMON[@]}" "${SOURCES[@]}" "${LINK[@]}" \

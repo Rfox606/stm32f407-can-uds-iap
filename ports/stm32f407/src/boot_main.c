@@ -5,6 +5,7 @@
 #include "bxcan.h"
 #include "isotp.h"
 #include "uds_boot.h"
+#include "boot_handoff.h"
 
 static isotp_t transport;
 static uds_boot_t diagnostic;
@@ -20,7 +21,8 @@ int main(void) {
     board_clock_init();
     board_init_leds();
     iap_flash_t flash = stm32f407_flash_ops();
-    if (!board_button_pressed() && iap_boot_select(&flash) == IAP_BOOT_APP) {
+    int handoff=boot_handoff_consume();
+    if (!handoff && !board_button_pressed() && iap_boot_select(&flash) == IAP_BOOT_APP) {
         board_set_led(13u,0);
         boot_jump_to_app();
     }

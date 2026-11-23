@@ -14,8 +14,8 @@ def check(root: Path) -> None:
         if len(data) < 8 or len(data) > size:
             raise ValueError(f'{name}: illegal size {len(data)} (max {size})')
         msp, reset = struct.unpack_from('<II', data)
-        if msp != 0x20020000:
-            raise ValueError(f'{name}: unexpected initial MSP 0x{msp:08X}')
+        if msp != 0x2001FFC0:
+            raise ValueError(f'{name}: unexpected reserved-mailbox stack top 0x{msp:08X}')
         if (reset & 1) != 1 or not base <= (reset & ~1) < base + len(data):
             raise ValueError(f'{name}: reset PC out of image 0x{reset:08X}')
         print(f'{name}: {len(data)} bytes, MSP=0x{msp:08X}, Reset=0x{reset:08X}; PASS')
