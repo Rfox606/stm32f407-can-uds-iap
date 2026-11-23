@@ -99,13 +99,14 @@ int bxcan_send_response(void *ctx, const uint8_t frame[8]) {
     tx_pending=1u;
     return 0;
 }
-int bxcan_read(uint8_t frame[8]) {
+int bxcan_read(uint8_t frame[8], uint8_t *dlc) {
     uint32_t lo,hi,id,rir,rdtr;
-    if (!frame || !(CAN_RF0R & 3u)) return 0;
+    if (!frame || !dlc || !(CAN_RF0R & 3u)) return 0;
     rir=CAN_RI0R;rdtr=CAN_RDT0R;lo=CAN_RDL0R;hi=CAN_RDH0R;
     CAN_RF0R=CAN_RF0R_RFOM0; /* release FIFO mailbox */
     id=(rir>>21)&0x7FFu;
-    if ((rir & 6u)!=0u || id!=0x7E0u || (rdtr & 0xFu)!=8u) return -1;
+    if ((rir & 6u)!=0u || id!=0x7E0u || (rdtr & 0xFu)==0u || (rdtr & 0xFu)>8u) return -1;
+    *dlc=(uint8_t)(rdtr & 0xFu);
     for (unsigned i=0;i<4u;i++) {
         frame[i]=(uint8_t)(lo>>(8u*i));
         frame[4u+i]=(uint8_t)(hi>>(8u*i));

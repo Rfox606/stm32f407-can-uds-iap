@@ -6,7 +6,7 @@
  * Polling driver: do not rely on CAN IRQs surviving single-bank Flash erase.
  */
 int bxcan_init(void);
-int bxcan_read(uint8_t frame[8]);
+int bxcan_read(uint8_t frame[8], uint8_t *dlc);
 int bxcan_send_response(void *ctx, const uint8_t frame[8]);
 /* 1 = last frame acknowledged; 0 = hardware still sending; -1 = TX error/bus-off */
 int bxcan_tx_complete(void);
