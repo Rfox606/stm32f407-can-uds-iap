@@ -12,28 +12,51 @@ void iap_updater_init(iap_updater_t *up, iap_flash_t flash) {
     up->state = IAP_UPD_IDLE;
 }
 
-iap_result_t iap_updater_begin(iap_updater_t *up, uint32_t image_size,
-                               uint32_t expected_crc, uint32_t version) {
-    unsigned sector;
-    uint64_t end;
+/* Prepare a transaction without erasing: the caller must send UDS 0x78 and
+ * confirm CAN transmission BEFORE executing a potentially long sector erase.
+ */
+iap_result_t iap_updater_prepare(iap_updater_t *up, uint32_t image_size,
+                                 uint32_t expected_crc, uint32_t version) {
     if (!up || !up->flash.erase_sector || !up->flash.program || !up->flash.read ||
-        image_size < 8u || image_size > IAP_APP_BYTES || up->state == IAP_UPD_RECEIVING)
+        image_size < 8u || image_size > IAP_APP_BYTES ||
+        up->state == IAP_UPD_ERASING || up->state == IAP_UPD_RECEIVING)
         return IAP_ERR_ARG;
-    /* Erase metadata FIRST: an interrupted download can never boot a partially erased image. */
-    up->state = IAP_UPD_IDLE;
-    if (up->flash.erase_sector(up->flash.ctx, 4u) != 0) return IAP_ERR_FLASH;
-    end = (uint64_t)IAP_APP_BASE + image_size;
-    for (sector = 5u; sector <= 11u; ++sector) {
-        uint64_t sector_start = (uint64_t)IAP_APP_BASE + (uint64_t)(sector - 5u) * 0x20000u;
-        if (sector_start >= end) break;
-        if (up->flash.erase_sector(up->flash.ctx, sector) != 0) return IAP_ERR_FLASH;
-    }
+    up->state = IAP_UPD_ERASING;
     up->expected_size = image_size;
     up->expected_crc = expected_crc;
     up->version = version;
     up->written = 0u;
-    up->state = IAP_UPD_RECEIVING;
+    up->next_sector = 4u; /* metadata FIRST */
+    up->last_sector = 5u + (unsigned)((image_size - 1u) / 0x20000u);
     return IAP_OK;
+}
+
+iap_result_t iap_updater_erase_step(iap_updater_t *up) {
+    if (!up || up->state != IAP_UPD_ERASING) return IAP_ERR_STATE;
+    if (up->flash.erase_sector(up->flash.ctx, up->next_sector) != 0) {
+        up->state = IAP_UPD_IDLE;
+        return IAP_ERR_FLASH;
+    }
+    ++up->next_sector;
+    if (up->next_sector > up->last_sector) {
+        up->state = IAP_UPD_RECEIVING;
+        return IAP_OK;
+    }
+    return IAP_MORE;
+}
+
+void iap_updater_abort(iap_updater_t *up) {
+    if (!up) return;
+    up->state = IAP_UPD_IDLE;
+    up->written = 0u;
+}
+
+iap_result_t iap_updater_begin(iap_updater_t *up, uint32_t image_size,
+                               uint32_t expected_crc, uint32_t version) {
+    iap_result_t rc = iap_updater_prepare(up, image_size, expected_crc, version);
+    if (rc != IAP_OK) return rc;
+    do { rc = iap_updater_erase_step(up); } while (rc == IAP_MORE);
+    return rc;
 }
 
 iap_result_t iap_updater_write(iap_updater_t *up, uint32_t offset,
