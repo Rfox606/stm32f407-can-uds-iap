@@ -126,6 +126,25 @@ static int uds_timeout(void) {
     CHECK(u.programming==0u);
     return 0;
 }
+static int uds_verify_deferred(void) {
+    uds_boot_t u;
+    uint8_t img[256],req[4]={0x31,1,0xFF,1},out[8];
+    size_t len;
+    make_image(img,sizeof(img));
+    iap_flash_t f=mock_flash_ops(&flash);
+    uds_boot_init(&u,f,100u);
+    CHECK(ready_download(&u)==0);
+    uint8_t block[258]={0x36,1},end[9]={0x37};
+    memcpy(block+2,img,256);
+    CHECK(ask(&u,block,258,out,&len)==0 && out[0]==0x76);
+    pack(end+1,iap_crc32(img,256));pack(end+5,0x010000u);
+    CHECK(ask(&u,end,9,out,&len)==0 && out[0]==0x77);
+    CHECK(ask(&u,req,4,out,&len)==0 && len==3 && out[0]==0x7F && out[2]==0x78);
+    CHECK(u.busy_verify==1u);
+    CHECK(uds_boot_verify_step(&u,out,&len,500u)==1 && len==5 && out[0]==0x71 && out[4]==0u);
+    CHECK(u.busy_verify==0u && u.last_activity_ms==500u);
+    return 0;
+}
 static int run(const char *name,int (*fn)(void)) {
     if (fn()) return 1;
     ++passed;printf("PASS %s\n",name);return 0;
@@ -135,7 +154,8 @@ int main(void) {
        run("ISO-TP FC / STmin / block size",iso_send) ||
        run("UDS download, idempotence, version",uds_download) ||
        run("UDS sequence and CRC faults",uds_error) ||
-       run("UDS session/address/timeout",uds_timeout)) return 1;
-    printf("%u/5 M2 protocol scenarios passed\n",passed);
+       run("UDS session/address/timeout",uds_timeout) ||
+       run("UDS delayed CRC response",uds_verify_deferred)) return 1;
+    printf("%u/6 M2 protocol scenarios passed\n",passed);
     return 0;
 }
