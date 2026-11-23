@@ -27,6 +27,7 @@ static void reset_session(uds_boot_t *b) {
     b->programming=0u;
     b->has_last=0u;
     b->busy_erase=0u;
+    b->busy_verify=0u;
     iap_updater_abort(&b->updater);
 }
 void uds_boot_init(uds_boot_t *b, iap_flash_t flash, uint32_t now_ms) {
@@ -37,7 +38,7 @@ void uds_boot_init(uds_boot_t *b, iap_flash_t flash, uint32_t now_ms) {
     b->next_seq=1u;
 }
 void uds_boot_tick(uds_boot_t *b, uint32_t now_ms) {
-    if (!b || !b->programming || b->busy_erase) return;
+    if (!b || !b->programming || (b->busy_erase || b->busy_verify)) return;
     if ((uint32_t)(now_ms-b->last_activity_ms)>UDS_S3_MS) reset_session(b);
 }
 int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
@@ -46,7 +47,7 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
     if (!b || !q || !n || !out || !o) return -1;
     sid=q[0];
     *o=0u;
-    if (b->busy_erase) { nrc(sid,NRC_CONDITIONS,out,o);return 0; }
+    if (b->busy_erase || b->busy_verify) { nrc(sid,NRC_CONDITIONS,out,o);return 0; }
     b->last_activity_ms=now_ms;
     switch(sid) {
     case 0x10u: { /* DiagnosticSessionControl */
@@ -63,9 +64,14 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
         if (q[1]!=0xF1u || (q[2]!=0x90u && q[2]!=0x91u)) { nrc(sid,NRC_RANGE,out,o);break; }
         out[0]=0x62u;out[1]=q[1];out[2]=q[2];
         if (q[2]==0x90u) {
+            /* Read ONLY metadata for a quick DID response; 0x31 verifies the entire image. */
             iap_image_record_t rec;
-            uint32_t v=iap_image_validate(&b->updater.flash,&rec)?rec.version:0u;
-            put32(out+3,v);*o=7u;
+            uint32_t ver=0u;
+            if (b->updater.flash.read(b->updater.flash.ctx,IAP_META_BASE,&rec,sizeof(rec))==0 &&
+                rec.magic==IAP_IMAGE_MAGIC && rec.image_size>=8u && rec.image_size<=IAP_APP_BYTES &&
+                iap_crc32(&rec,offsetof(iap_image_record_t,record_crc32))==rec.record_crc32)
+                ver=rec.version;
+            put32(out+3,ver);*o=7u;
         } else {
             out[3]=(uint8_t)b->updater.state;
             out[4]=(uint8_t)(b->updater.written>>16);
@@ -126,12 +132,12 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
         }
         out[0]=0x77u;*o=1u;break;
     }
-    case 0x31u: { /* routine FF01 verifies the committed image */
+    case 0x31u: { /* routine FF01: deferred full-image CRC scan */
         if (n!=4u) { nrc(sid,NRC_LENGTH,out,o);break; }
         if (q[1]!=1u || q[2]!=0xFFu || q[3]!=1u) { nrc(sid,NRC_RANGE,out,o);break; }
-        out[0]=0x71u;out[1]=1u;out[2]=0xFFu;out[3]=1u;
-        out[4]=(uint8_t)(iap_image_validate(&b->updater.flash,0)?0u:1u);
-        *o=5u;break;
+        b->busy_verify=1u;
+        nrc(sid,NRC_PENDING,out,o);
+        break;
     }
     case 0x11u: {
         if (n!=2u) { nrc(sid,NRC_LENGTH,out,o);break; }
@@ -160,5 +166,18 @@ int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t
             out[0]=0x74u;out[1]=0x20u;out[2]=1u;out[3]=2u;*out_len=4u;
         }
     }
+    return 1;
+}
+
+int uds_boot_verify_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms) {
+    if (!b || !out || !out_len || !b->busy_verify) return 0;
+    /* Read-only operation may be long for large images. It follows a CAN-ACKed
+     * ResponsePending frame, just like a Flash sector erase.
+     */
+    uint8_t valid=(uint8_t)(iap_image_validate(&b->updater.flash,0)?0u:1u);
+    b->busy_verify=0u;
+    b->last_activity_ms=now_ms;
+    out[0]=0x71u;out[1]=1u;out[2]=0xFFu;out[3]=1u;out[4]=valid;
+    *out_len=5u;
     return 1;
 }

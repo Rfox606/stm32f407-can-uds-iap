@@ -14,7 +14,7 @@ typedef struct {
     uint16_t last_len;
     uint8_t programming;
     uint8_t last_seq, next_seq, has_last;
-    uint8_t busy_erase, reset_requested;
+    uint8_t busy_erase, busy_verify, reset_requested;
 } uds_boot_t;
 void uds_boot_init(uds_boot_t *b, iap_flash_t flash, uint32_t now_ms);
 /* Always fills response (positive or 7F negative), length <=7; return -1 on bad pointers. */
@@ -25,5 +25,7 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *req, size_t len,
  * Returns 1 if a response was produced, 0 if no erase was pending.
  */
 int uds_boot_erase_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms);
+/* Deferred CRC scan: called only after NRC 7F 31 78 is CAN-ACKed. */
+int uds_boot_verify_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms);
 void uds_boot_tick(uds_boot_t *b, uint32_t now_ms);
 #endif

@@ -41,7 +41,7 @@ int main(void) {
         uds_boot_tick(&diagnostic,now);
         /* Consume a request only when a response CAN mailbox is available.
          * No Flash work is performed from the CAN receive path. */
-        if (!diagnostic.busy_erase && isotp_peek(&transport,&request,&request_len) &&
+        if (!diagnostic.busy_erase && !diagnostic.busy_verify && isotp_peek(&transport,&request,&request_len) &&
             isotp_tx_idle(&transport) && bxcan_tx_complete()==1) {
             if (uds_boot_request(&diagnostic,request,request_len,
                                  response,&response_len,now)==0 && response_len) {
@@ -57,6 +57,11 @@ int main(void) {
             if (uds_boot_erase_step(&diagnostic,response,&response_len,bxcan_now_ms())>0) {
                 (void)isotp_send(&transport,response,response_len,bxcan_now_ms());
             }
+        }
+        if (diagnostic.busy_verify && isotp_tx_idle(&transport) &&
+            bxcan_tx_complete()==1) {
+            if (uds_boot_verify_step(&diagnostic,response,&response_len,bxcan_now_ms())>0)
+                (void)isotp_send(&transport,response,response_len,bxcan_now_ms());
         }
         if (diagnostic.reset_requested && isotp_tx_idle(&transport) &&
             bxcan_tx_complete()==1) {
