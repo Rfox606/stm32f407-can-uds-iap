@@ -26,18 +26,23 @@ if(BUILD_TESTING)
   target_link_libraries(m2_protocol_test PRIVATE iap_protocol)
   target_include_directories(m2_protocol_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
+  add_executable(handoff_policy_test tests/test_handoff_policy.c)
+  target_include_directories(handoff_policy_test PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/ports/stm32f407/include)
+
   add_executable(iap_uds_bridge tests/uds_bridge.c tests/mock_flash.c)
   target_link_libraries(iap_uds_bridge PRIVATE iap_protocol)
   target_include_directories(iap_uds_bridge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    foreach(t iap_core_test stm32f407_flash_layout_test m2_protocol_test iap_uds_bridge)
+    foreach(t iap_core_test stm32f407_flash_layout_test m2_protocol_test handoff_policy_test iap_uds_bridge)
       target_compile_options(${t} PRIVATE -Wall -Wextra -Werror -Wpedantic)
     endforeach()
   endif()
   add_test(NAME boot_core COMMAND iap_core_test)
   add_test(NAME flash_layout COMMAND stm32f407_flash_layout_test)
   add_test(NAME m2_protocol COMMAND m2_protocol_test)
+  add_test(NAME handoff_policy COMMAND handoff_policy_test)
 
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
   add_test(NAME host_updater

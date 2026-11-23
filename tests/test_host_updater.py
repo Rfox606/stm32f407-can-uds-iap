@@ -63,6 +63,20 @@ class FirmwareTests(unittest.TestCase):
             UdsClient(l2).request(b"\x36\x05\xAA")
         self.assertEqual(ctx.exception.nrc, 0x73)
 
+    def test_app_handoff_uses_readonly_mode_polling(self) -> None:
+        link = Stub([
+            b"\x62\xF1\x92\x00\x00\x00\x00",
+            b"\x50\x02\x00\x32\x01\xF4",
+            b"\x62\xF1\x92\x00\x00\x00\x01",
+            b"\x50\x02\x00\x32\x01\xF4"
+        ])
+        c = UdsClient(link)
+        c.enter_programming()
+        self.assertEqual(link.sent, [
+            b"\x22\xF1\x92", b"\x10\x02",
+            b"\x22\xF1\x92", b"\x10\x02"
+        ])
+
     def test_no_blind_retry_on_download_timeout(self) -> None:
         link = Stub([b"\x62\xF1\x92\x00\x00\x00\x01",
                      b"\x50\x02\x00\x32\x01\xF4", None])
