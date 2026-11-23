@@ -28,6 +28,7 @@ static void reset_session(uds_boot_t *b) {
     b->has_last=0u;
     b->busy_erase=0u;
     b->busy_verify=0u;
+    b->busy_finish=0u;
     iap_updater_abort(&b->updater);
 }
 void uds_boot_init(uds_boot_t *b, iap_flash_t flash, uint32_t now_ms) {
@@ -38,7 +39,7 @@ void uds_boot_init(uds_boot_t *b, iap_flash_t flash, uint32_t now_ms) {
     b->next_seq=1u;
 }
 void uds_boot_tick(uds_boot_t *b, uint32_t now_ms) {
-    if (!b || !b->programming || (b->busy_erase || b->busy_verify)) return;
+    if (!b || !b->programming || (b->busy_erase || b->busy_verify || b->busy_finish)) return;
     if ((uint32_t)(now_ms-b->last_activity_ms)>UDS_S3_MS) reset_session(b);
 }
 int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
@@ -47,7 +48,7 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
     if (!b || !q || !n || !out || !o) return -1;
     sid=q[0];
     *o=0u;
-    if (b->busy_erase || b->busy_verify) { nrc(sid,NRC_CONDITIONS,out,o);return 0; }
+    if (b->busy_erase || b->busy_verify || b->busy_finish) { nrc(sid,NRC_CONDITIONS,out,o);return 0; }
     b->last_activity_ms=now_ms;
     switch(sid) {
     case 0x10u: { /* DiagnosticSessionControl */
@@ -59,11 +60,11 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
         out[4]=0x01u;out[5]=0xF4u;
         *o=6u;break;
     }
-    case 0x22u: { /* ReadDataByIdentifier; F190=4B image version, F191=state/progress */
+    case 0x22u: { /* ReadDataByIdentifier; F150=4B image version, F151=state/progress */
         if (n!=3u) { nrc(sid,NRC_LENGTH,out,o);break; }
-        if (q[1]!=0xF1u || (q[2]!=0x90u && q[2]!=0x91u)) { nrc(sid,NRC_RANGE,out,o);break; }
+        if (q[1]!=0xF1u || (q[2]!=0x50u && q[2]!=0x51u && q[2]!=0x52u)) { nrc(sid,NRC_RANGE,out,o);break; }
         out[0]=0x62u;out[1]=q[1];out[2]=q[2];
-        if (q[2]==0x90u) {
+        if (q[2]==0x50u) {
             /* Read ONLY metadata for a quick DID response; 0x31 verifies the entire image. */
             iap_image_record_t rec;
             uint32_t ver=0u;
@@ -72,6 +73,9 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
                 iap_crc32(&rec,offsetof(iap_image_record_t,record_crc32))==rec.record_crc32)
                 ver=rec.version;
             put32(out+3,ver);*o=7u;
+        } else if (q[2]==0x52u) {
+            put32(out+3,1u); /* Bootloader mode */
+            *o=7u;
         } else {
             out[3]=(uint8_t)b->updater.state;
             out[4]=(uint8_t)(b->updater.written>>16);
@@ -119,18 +123,18 @@ int uds_boot_request(uds_boot_t *b, const uint8_t *q, size_t n,
         } else { nrc(sid,NRC_BLOCK,out,o);break; }
         out[0]=0x76u;out[1]=seq;*o=2u;break;
     }
-    case 0x37u: { /* OEM transferExit: CRC32 BE + version BE */
+    case 0x37u: { /* TransferExit: defer full CRC and metadata commit */
         if (!b->programming) { nrc(sid,NRC_SESSION,out,o);break; }
         if (n!=9u) { nrc(sid,NRC_LENGTH,out,o);break; }
-        if (b->updater.state!=IAP_UPD_RECEIVING) { nrc(sid,NRC_SEQUENCE,out,o);break; }
+        if (b->updater.state!=IAP_UPD_RECEIVING ||
+            b->updater.written!=b->updater.expected_size) {
+            nrc(sid,NRC_SEQUENCE,out,o);break;
+        }
         b->updater.expected_crc=get32(q+1);
         b->updater.version=get32(q+5);
-        iap_result_t rc=iap_updater_finish(&b->updater);
-        if (rc!=IAP_OK) {
-            iap_updater_abort(&b->updater);
-            nrc(sid,NRC_PROGRAMMING,out,o);break;
-        }
-        out[0]=0x77u;*o=1u;break;
+        b->busy_finish=1u;
+        nrc(sid,NRC_PENDING,out,o);
+        break;
     }
     case 0x31u: { /* routine FF01: deferred full-image CRC scan */
         if (n!=4u) { nrc(sid,NRC_LENGTH,out,o);break; }
@@ -179,5 +183,19 @@ int uds_boot_verify_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_
     b->last_activity_ms=now_ms;
     out[0]=0x71u;out[1]=1u;out[2]=0xFFu;out[3]=1u;out[4]=valid;
     *out_len=5u;
+    return 1;
+}
+
+int uds_boot_finish_step(uds_boot_t *b, uint8_t out[8], size_t *out_len, uint32_t now_ms) {
+    if (!b || !out || !out_len || !b->busy_finish) return 0;
+    iap_result_t rc=iap_updater_finish(&b->updater);
+    b->busy_finish=0u;
+    b->last_activity_ms=now_ms;
+    if (rc!=IAP_OK) {
+        iap_updater_abort(&b->updater);
+        nrc(0x37u,NRC_PROGRAMMING,out,out_len);
+    } else {
+        out[0]=0x77u;*out_len=1u;
+    }
     return 1;
 }

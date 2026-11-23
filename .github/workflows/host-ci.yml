@@ -13,5 +13,7 @@ jobs:
         run: cmake --build build --parallel
       - name: Test
         run: ctest --test-dir build --output-on-failure
+      - name: M3 Python与C协议软件联调详细日志
+        run: IAP_UDS_BRIDGE=./build/iap_uds_bridge python3 -m unittest discover -s tests -p test_host_updater.py -v
       - name: Named scenario summary
         run: ./build/iap_core_test

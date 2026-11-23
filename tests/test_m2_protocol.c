@@ -80,7 +80,7 @@ static int ready_download(uds_boot_t *u) {
     return 0;
 }
 static int uds_download(void) {
-    uds_boot_t u;uint8_t image[256],block[258]={0x36,1},end[9]={0x37},out[8],readq[3]={0x22,0xF1,0x90};
+    uds_boot_t u;uint8_t image[256],block[258]={0x36,1},end[9]={0x37},out[8],readq[3]={0x22,0xF1,0x50};
     size_t n;unsigned writes;
     make_image(image,sizeof(image));iap_flash_t f=mock_flash_ops(&flash);
     uds_boot_init(&u,f,100);
@@ -93,7 +93,8 @@ static int uds_download(void) {
     CHECK(ask(&u,block,sizeof(block),out,&n)==0 && n==3 && out[2]==0x73);
     block[42]^=1u;
     pack(end+1,iap_crc32(image,sizeof(image)));pack(end+5,0x01020304u);
-    CHECK(ask(&u,end,sizeof(end),out,&n)==0 && n==1 && out[0]==0x77);
+    CHECK(ask(&u,end,sizeof(end),out,&n)==0 && n==3 && out[2]==0x78);
+    CHECK(uds_boot_finish_step(&u,out,&n,150u)==1 && n==1 && out[0]==0x77);
     CHECK(iap_boot_select(&f)==IAP_BOOT_APP);
     CHECK(ask(&u,readq,sizeof(readq),out,&n)==0 && n==7);
     CHECK(out[3]==1u && out[4]==2u && out[5]==3u && out[6]==4u);
@@ -109,7 +110,8 @@ static int uds_error(void) {
     block[1]=1;
     CHECK(ask(&u,block,sizeof(block),out,&n)==0 && n==2);
     pack(end+1,0xAABBCCDDu);pack(end+5,1u);
-    CHECK(ask(&u,end,sizeof(end),out,&n)==0 && n==3 && out[2]==0x72);
+    CHECK(ask(&u,end,sizeof(end),out,&n)==0 && n==3 && out[2]==0x78);
+    CHECK(uds_boot_finish_step(&u,out,&n,150u)==1 && n==3 && out[2]==0x72);
     CHECK(iap_boot_select(&f)==IAP_BOOT_RECOVERY);
     return 0;
 }
@@ -138,7 +140,8 @@ static int uds_verify_deferred(void) {
     memcpy(block+2,img,256);
     CHECK(ask(&u,block,258,out,&len)==0 && out[0]==0x76);
     pack(end+1,iap_crc32(img,256));pack(end+5,0x010000u);
-    CHECK(ask(&u,end,9,out,&len)==0 && out[0]==0x77);
+    CHECK(ask(&u,end,9,out,&len)==0 && out[0]==0x7F && out[2]==0x78);
+    CHECK(uds_boot_finish_step(&u,out,&len,150u)==1 && out[0]==0x77);
     CHECK(ask(&u,req,4,out,&len)==0 && len==3 && out[0]==0x7F && out[2]==0x78);
     CHECK(u.busy_verify==1u);
     CHECK(uds_boot_verify_step(&u,out,&len,500u)==1 && len==5 && out[0]==0x71 && out[4]==0u);

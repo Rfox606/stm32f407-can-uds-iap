@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Build the initial 20-byte metadata record for a known, linked APP image.
 
-Only needed to program APP and metadata externally (e.g., SWD) before
-CAN/UDS downloading has been implemented in M2. The file is NOT an app image.
+Only needed to program APP and metadata externally (e.g., SWD) for first installation; online CAN/UDS updating is now available in M2/M3. The file is NOT an app image.
 """
 from pathlib import Path
 import argparse
@@ -17,7 +16,7 @@ def generate(image: bytes, version: int) -> bytes:
     if not 8 <= len(image) <= APP_LIMIT:
         raise ValueError("unexpected APP size")
     msp, reset = struct.unpack_from("<II", image)
-    if msp != 0x20020000 or (reset & 1) == 0 or not APP_BASE <= (reset & ~1) < APP_BASE + len(image):
+    if msp != 0x2001FFC0 or (reset & 1) == 0 or not APP_BASE <= (reset & ~1) < APP_BASE + len(image):
         raise ValueError("invalid APP vector table")
     header = struct.pack("<III", len(image), zlib.crc32(image), version)
     return header + struct.pack("<II", zlib.crc32(header), MAGIC)

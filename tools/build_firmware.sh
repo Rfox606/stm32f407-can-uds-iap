@@ -15,7 +15,8 @@ fi
 SHARED=("${ROOT}/ports/stm32f407/src/startup_stm32f407.S" \
         "${ROOT}/ports/stm32f407/src/clock.c" \
         "${ROOT}/ports/stm32f407/src/board.c" \
-        "${ROOT}/ports/stm32f407/src/runtime_mem.c")
+        "${ROOT}/ports/stm32f407/src/runtime_mem.c" \
+        "${ROOT}/ports/stm32f407/src/boot_handoff.c")
 for TARGET in boot app; do
   SOURCES=("${SHARED[@]}")
   if [[ "$TARGET" == boot ]]; then
@@ -27,7 +28,11 @@ for TARGET in boot app; do
       "${ROOT}/protocol/src/isotp.c" "${ROOT}/protocol/src/uds_boot.c" \
       "${ROOT}/ports/stm32f407/src/bxcan.c")
   else
-    SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c")
+    SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c" \
+      "${ROOT}/ports/stm32f407/src/app_uds.c" \
+      "${ROOT}/ports/stm32f407/src/bxcan.c" \
+      "${ROOT}/protocol/src/isotp.c" \
+      "${ROOT}/src/crc32.c")
   fi
   echo "==> Building ${TARGET} with ${CC}"
   "$CC" "${COMMON[@]}" "${SOURCES[@]}" "${LINK[@]}" \
@@ -37,6 +42,10 @@ for TARGET in boot app; do
   "$OBJCOPY" -O binary "${BUILD_DIR}/${TARGET}.elf" "${BUILD_DIR}/${TARGET}.bin"
   "$OBJDUMP" -d "${BUILD_DIR}/${TARGET}.elf" > "${BUILD_DIR}/${TARGET}.disasm.txt"
   ls -l "${BUILD_DIR}/${TARGET}.elf" "${BUILD_DIR}/${TARGET}.bin"
+  if command -v arm-none-eabi-size >/dev/null 2>&1; then
+    arm-none-eabi-size "${BUILD_DIR}/${TARGET}.elf"
+  fi
 done
 python3 "${ROOT}/tools/check_arm_images.py" "$BUILD_DIR"
 python3 "${ROOT}/tools/make_factory_metadata.py" "$BUILD_DIR/app.bin" "$BUILD_DIR/app_factory_meta.bin"
+PYTHONPATH="${ROOT}" python3 -m host.flash_cli inspect "$BUILD_DIR/app.bin" --version 0x010000
