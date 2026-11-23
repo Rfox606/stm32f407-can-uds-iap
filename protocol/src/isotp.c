@@ -44,6 +44,7 @@ int isotp_on_can(isotp_t *t, const uint8_t frame[8], uint8_t dlc, uint32_t now_m
     if (pci == 3u) { /* Flow Control is for OUR transmitter */
         if (!t->tx_active || !t->tx_wait_fc || dlc < 3u) return -1;
         if ((frame[0] & 0x0Fu) == 1u) { /* WAIT */
+            if (++t->tx_wait_count > 3u) { abort_tx(t); return -1; }
             t->tx_last_ms = now_ms;
             return 0;
         }
@@ -51,6 +52,7 @@ int isotp_on_can(isotp_t *t, const uint8_t frame[8], uint8_t dlc, uint32_t now_m
             abort_tx(t);
             return -1;
         }
+        t->tx_wait_count=0u;
         t->tx_block_left = frame[1];
         t->tx_stmin_ms = frame[2] > 0x7Fu ? 1u : frame[2]; /* sub-ms STmin conservatively rounded UP */
         t->tx_wait_fc = 0u;
