@@ -1,0 +1,23 @@
+Date: 2026-11-23
+Compiler: clang 17.0.0 (ARM Cortex-M4, soft float ABI)
+
+Build result:
+==> Building boot with clang
+boot.bin 2024 bytes
+==> Building app with clang
+app.bin 688 bytes
+boot: 2024 bytes, MSP=0x20020000, Reset=0x08000189; PASS
+app: 688 bytes, MSP=0x20020000, Reset=0x08020199; PASS
+Factory metadata: 20 bytes, target=0x08010000, version=0x00010000
+
+Host tests:
+CTest suite boot_core: PASS (9 internal scenarios)
+CTest suite flash_layout: PASS (15 checks)
+2/2 suites passed.
+
+Clang handoff disassembly:
+08000334 <transfer_msp_reset>:
+ 8000334: f380 8808     msr msp, r0
+ 8000338: 4708          bx r1
+
+This is a compiler/host test record, not physical hardware observation.
