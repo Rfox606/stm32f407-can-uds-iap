@@ -42,6 +42,10 @@ for TARGET in boot app; do
   "$OBJCOPY" -O binary "${BUILD_DIR}/${TARGET}.elf" "${BUILD_DIR}/${TARGET}.bin"
   "$OBJDUMP" -d "${BUILD_DIR}/${TARGET}.elf" > "${BUILD_DIR}/${TARGET}.disasm.txt"
   ls -l "${BUILD_DIR}/${TARGET}.elf" "${BUILD_DIR}/${TARGET}.bin"
+  if command -v arm-none-eabi-size >/dev/null 2>&1; then
+    arm-none-eabi-size "${BUILD_DIR}/${TARGET}.elf"
+  fi
 done
 python3 "${ROOT}/tools/check_arm_images.py" "$BUILD_DIR"
 python3 "${ROOT}/tools/make_factory_metadata.py" "$BUILD_DIR/app.bin" "$BUILD_DIR/app_factory_meta.bin"
+PYTHONPATH="${ROOT}" python3 -m host.flash_cli inspect "$BUILD_DIR/app.bin" --version 0x010000
