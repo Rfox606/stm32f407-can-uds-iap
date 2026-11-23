@@ -11,3 +11,9 @@
 初次使用需将boot.bin、app_factory_meta.bin、app.bin分别写入0x08000000、0x08010000和0x08020000，详见M1验证文档。
 
 Flash使用x32编程，假设板上目标电压为3.3V（2.7～3.6V条件）。未实物验证，切勿把编译通过等同于上板运行通过。
+
+## M2补充
+
+Bootloader恢复模式现在已集成CAN1(PB8/PB9)、ISO-TP和UDS协议，使用TIM2毫秒计数。实际使用须通过外部CAN收发器接入CAN-H/CAN-L，并保证合理的接线、终端电阻和电源电平。现用16MHz HSI推算500 kbit/s时序，尚未进行真实总线误码及波形验证。
+
+编译仍使用 `bash tools/build_firmware.sh`，会把协议源码编入Bootloader；运行协议软件测试可执行 `cmake -S . -B build && cmake --build build && ctest --test-dir build --output-on-failure`。
