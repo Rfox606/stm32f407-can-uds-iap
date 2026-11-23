@@ -76,7 +76,7 @@ static int ready_download(uds_boot_t *u) {
     pack(q+3,IAP_APP_BASE);pack(q+7,256);
     CHECK(ask(u,q,11,out,&n)==0 && out[0]==0x7F && out[2]==0x78);
     CHECK(uds_boot_erase_step(u,out,&n,100u)==1 && out[2]==0x78);
-    CHECK(uds_boot_erase_step(u,out,&n)==1 && out[0]==0x74 && n==4);
+    CHECK(uds_boot_erase_step(u,out,&n,100u)==1 && out[0]==0x74 && n==4);
     return 0;
 }
 static int uds_download(void) {
