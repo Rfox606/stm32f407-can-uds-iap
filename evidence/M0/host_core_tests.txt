@@ -1,0 +1,12 @@
+PASS empty boot => recovery
+PASS CRC32 known vector
+PASS valid image => app
+PASS interrupted download
+PASS wrong CRC
+PASS corrupted committed image
+PASS out-of-order block
+PASS interrupted commit marker
+PASS invalid reset vector
+9/9 tests passed (host model only)
+
+Python manifest script syntax check: PASS

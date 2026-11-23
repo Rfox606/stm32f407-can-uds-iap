@@ -1,0 +1,2 @@
+gcc (Debian 14.2.0-19) 14.2.0
+cmake version 3.31.6
