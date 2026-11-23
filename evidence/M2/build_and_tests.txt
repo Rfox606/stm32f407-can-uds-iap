@@ -1,0 +1,22 @@
+M2 软件与交叉编译记录（2026-11-23）
+分支：feature/m2-can-isotp-uds
+
+ARM GCC 交叉编译（提交 e6e3bfc）：
+- Bootloader 二进制：5920 bytes。
+- APP 演示二进制：668 bytes。
+- 初始MSP=0x20020000，Bootloader Reset=0x08000189，APP Reset=0x08020199。
+- 编译/链接/向量表检查：成功。
+- 构建来源：https://github.com/Rfox606/stm32f407-can-uds-iap/actions/runs/45154912906
+
+主机端测试：
+- boot_core：原M0核心9项
+- flash_layout：STM32F407扇区与边界测试15项
+- m2_protocol：ISO-TP及UDS测试6项
+- CTest共3/3测试套件通过（以最新同提交自动化日志为准）。
+
+已确认的历史失败：
+- 接口参数更新遗漏一处调用，编译失败：
+  https://github.com/Rfox606/stm32f407-can-uds-iap/actions/runs/45153753860
+- 修复后协议测试及交叉编译重新通过。
+
+本文件不包含硬件实测数据或实物测试结论。

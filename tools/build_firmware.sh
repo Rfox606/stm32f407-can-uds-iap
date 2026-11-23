@@ -6,7 +6,7 @@ mkdir -p "$BUILD_DIR"
 CC="${ARM_CC:-arm-none-eabi-gcc}"
 OBJCOPY="${ARM_OBJCOPY:-arm-none-eabi-objcopy}"
 OBJDUMP="${ARM_OBJDUMP:-arm-none-eabi-objdump}"
-COMMON=(-mcpu=cortex-m4 -mthumb -mfloat-abi=soft -ffreestanding -fno-builtin -fno-common -fdata-sections -ffunction-sections -Os -g3 -std=c11 -Wall -Wextra -Werror -Wpedantic -I"${ROOT}/include" -I"${ROOT}/ports/stm32f407/include")
+COMMON=(-mcpu=cortex-m4 -mthumb -mfloat-abi=soft -ffreestanding -fno-builtin -fno-common -fdata-sections -ffunction-sections -Os -g3 -std=c11 -Wall -Wextra -Werror -Wpedantic -I"${ROOT}/include" -I"${ROOT}/ports/stm32f407/include" -I"${ROOT}/protocol/include")
 LINK=(-nostdlib -Wl,--gc-sections)
 if [[ "$CC" == *clang* ]]; then
   COMMON=(--target=arm-none-eabi "${COMMON[@]}")
@@ -23,7 +23,9 @@ for TARGET in boot app; do
       "${ROOT}/ports/stm32f407/src/boot_jump.c" \
       "${ROOT}/ports/stm32f407/src/flash_layout.c" \
       "${ROOT}/ports/stm32f407/src/flash_stm32f407.c" \
-      "${ROOT}/src/crc32.c" "${ROOT}/src/image.c" "${ROOT}/src/updater.c")
+      "${ROOT}/src/crc32.c" "${ROOT}/src/image.c" "${ROOT}/src/updater.c" \
+      "${ROOT}/protocol/src/isotp.c" "${ROOT}/protocol/src/uds_boot.c" \
+      "${ROOT}/ports/stm32f407/src/bxcan.c")
   else
     SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c")
   fi
