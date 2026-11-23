@@ -18,7 +18,7 @@ typedef struct {
     uint16_t rx_size, rx_count, tx_size, tx_count;
     uint32_t rx_last_ms, tx_last_ms, tx_next_ms;
     uint8_t rx_next_sn, tx_next_sn;
-    uint8_t tx_block_left, tx_wait_fc, tx_stmin_ms;
+    uint8_t tx_block_left, tx_wait_fc, tx_stmin_ms, tx_wait_count;
     uint8_t rx_active, rx_ready, tx_active;
     uint32_t rx_errors, tx_errors;
 } isotp_t;
