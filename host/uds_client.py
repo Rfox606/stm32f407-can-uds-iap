@@ -19,7 +19,7 @@ APP_LIMIT = 896 * 1024
 SRAM_MIN = 0x20000000
 SRAM_MAX = 0x20020000
 CHUNK_SIZE = 256
-DID_VERSION = b"\x22\xF1\x90"
+DID_VERSION = b"\x22\xF1\x50"
 ROUTINE_VERIFY = b"\x31\x01\xFF\x01"
 
 
@@ -124,9 +124,9 @@ class UdsClient:
             return response
 
     def get_mode(self) -> int:
-        """厂家定义的F192：0=正常APP，1=Bootloader。"""
-        r = self.request(b"\x22\xF1\x92")
-        if len(r) != 7 or r[:3] != b"\x62\xF1\x92":
+        """厂家定义的F152：0=正常APP，1=Bootloader。"""
+        r = self.request(b"\x22\xF1\x52")
+        if len(r) != 7 or r[:3] != b"\x62\xF1\x52":
             raise UpgradeError(f"固件模式查询响应不正确：{r.hex(' ')}")
         mode = int.from_bytes(r[3:7], "big")
         if mode not in (0, 1):
@@ -156,7 +156,7 @@ class UdsClient:
 
     def get_version(self) -> int:
         response = self.request(DID_VERSION)
-        if len(response) != 7 or response[:3] != b"\x62\xF1\x90":
+        if len(response) != 7 or response[:3] != b"\x62\xF1\x50":
             raise UpgradeError(f"版本查询响应格式不正确：{response.hex(' ')}")
         return int.from_bytes(response[3:7], "big")
 

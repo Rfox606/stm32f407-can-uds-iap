@@ -65,27 +65,27 @@ class FirmwareTests(unittest.TestCase):
 
     def test_app_handoff_uses_readonly_mode_polling(self) -> None:
         link = Stub([
-            b"\x62\xF1\x92\x00\x00\x00\x00",
+            b"\x62\xF1\x52\x00\x00\x00\x00",
             b"\x50\x02\x00\x32\x01\xF4",
-            b"\x62\xF1\x92\x00\x00\x00\x01",
+            b"\x62\xF1\x52\x00\x00\x00\x01",
             b"\x50\x02\x00\x32\x01\xF4"
         ])
         c = UdsClient(link)
         c.enter_programming()
         self.assertEqual(link.sent, [
-            b"\x22\xF1\x92", b"\x10\x02",
-            b"\x22\xF1\x92", b"\x10\x02"
+            b"\x22\xF1\x52", b"\x10\x02",
+            b"\x22\xF1\x52", b"\x10\x02"
         ])
 
     def test_no_blind_retry_on_download_timeout(self) -> None:
-        link = Stub([b"\x62\xF1\x92\x00\x00\x00\x01",
+        link = Stub([b"\x62\xF1\x52\x00\x00\x00\x01",
                      b"\x50\x02\x00\x32\x01\xF4", None])
         with tempfile.TemporaryDirectory() as d:
             f = Firmware.open(image_file(Path(d), 256))
             with self.assertRaises(RequestTimeout):
                 UdsClient(link).upgrade(f, version=1, retries=3)
         self.assertEqual(len(link.sent), 3)
-        self.assertEqual(link.sent[0], b"\x22\xF1\x92")
+        self.assertEqual(link.sent[0], b"\x22\xF1\x52")
         self.assertEqual(link.sent[1], b"\x10\x02")
         self.assertEqual(link.sent[2][:3], b"\x34\x00\x44")
 

@@ -21,11 +21,11 @@ int app_uds_request(const uint8_t *q,size_t n,uint8_t out[8],size_t *out_len) {
     switch(q[0]) {
     case 0x22u:
         if(n!=3u) { nrc(q[0],0x13u,out,out_len);break; }
-        if(q[1]!=0xF1u || (q[2]!=0x90u && q[2]!=0x92u)) {
+        if(q[1]!=0xF1u || (q[2]!=0x50u && q[2]!=0x52u)) {
             nrc(q[0],0x31u,out,out_len);break;
         }
         out[0]=0x62u;out[1]=q[1];out[2]=q[2];
-        if(q[2]==0x92u) put32(out+3,0u); /* APP mode */
+        if(q[2]==0x52u) put32(out+3,0u); /* APP mode */
         else {
             const volatile iap_image_record_t *meta=(const volatile iap_image_record_t *)(uintptr_t)IAP_META_BASE;
             iap_image_record_t snapshot;

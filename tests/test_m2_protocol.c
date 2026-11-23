@@ -80,7 +80,7 @@ static int ready_download(uds_boot_t *u) {
     return 0;
 }
 static int uds_download(void) {
-    uds_boot_t u;uint8_t image[256],block[258]={0x36,1},end[9]={0x37},out[8],readq[3]={0x22,0xF1,0x90};
+    uds_boot_t u;uint8_t image[256],block[258]={0x36,1},end[9]={0x37},out[8],readq[3]={0x22,0xF1,0x50};
     size_t n;unsigned writes;
     make_image(image,sizeof(image));iap_flash_t f=mock_flash_ops(&flash);
     uds_boot_init(&u,f,100);
