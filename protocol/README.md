@@ -1,13 +1,12 @@
-# CAN / ISO-TP / UDS协议模块（待实现）
+# M2协议子系统
 
-此目录用于后续协议适配，**当前不是已实现的UDS协议栈**。详细约定见docs/03_protocol.md。
+**本目录已经有实际C代码，不再是占位结构。**
 
-建议在CAN接收中断与前台状态机之间使用有界缓冲：
-CAN收帧 → ISO-TP处理 → UDS请求 → 更新核心
+- `include/isotp.h`、`src/isotp.c`：固定缓冲的经典CAN ISO-TP收发与流控状态机。
+- `include/uds_boot.h`、`src/uds_boot.c`：面向单APP槽Bootloader的UDS服务和异步擦除/校验。
+- `tests/test_m2_protocol.c`：正常和异常协议测试。
+- STM32接入路径：`ports/stm32f407/src/bxcan.c` → `boot_main.c` → ISO-TP → UDS → `iap_updater`。
 
-- 0x34连接iap_updater_begin；
-- 0x36连接iap_updater_write；
-- 0x37连接iap_updater_finish；
-- 会话超时、异常响应与重试由协议适配层处理。
+具体帧格式、时序、风险和现阶段证据见[《M2协议实现与验证》](../docs/12_M2_协议实现与验证.md)。
 
-第三方候选代码为MIT许可的driftregion/iso14229，接入前需固定版本并记录许可证。
+当前为专项子集，不是完整ISO-TP/UDS标准认证协议栈；未进行硬件联调。正式使用需要为CAN添加实际收发器，适配时钟与波特率，并进行总线及Flash时序验证。
