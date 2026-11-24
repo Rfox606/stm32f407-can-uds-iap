@@ -98,7 +98,7 @@ python3 -m host.flash_cli flash build-arm/app.bin --version 0x010002 \
 软件测试已增加3组CAN应答门控故障注入和4项CAN理论帧数计算回归。理论估算工具：
 
 ```bash
-python3 tools/estimate_upgrade.py 3184
+python3 tools/estimate_upgrade.py 3188
 ```
 
 本项目五项交付物及技术细节见：

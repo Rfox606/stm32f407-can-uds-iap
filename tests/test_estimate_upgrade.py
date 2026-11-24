@@ -8,7 +8,7 @@ class TheoreticalTimingTests(unittest.TestCase):
     def test_short_block(self):
         self.assertEqual(frames_for_block(1), 2)
     def test_compiled_app_size(self):
-        r = estimate(3184)
+        r = estimate(3188)
         self.assertEqual(r.blocks, 13)
         self.assertEqual(r.frames, 487)
         self.assertAlmostEqual(r.bus_only_ms, 108.114)
