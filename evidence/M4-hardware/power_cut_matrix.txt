@@ -1,0 +1,16 @@
+# CI actual software injection results, NOT physical power-loss tests.
+# CI run 45306810646 / bafa8e2da.
+cut=0 after-operation => OLD APP; boot area intact; reflash PASS
+cut=1 after-operation => RECOVERY; boot area intact; reflash PASS
+cut=1 mid-operation => RECOVERY; boot area intact; reflash PASS
+cut=2 after-operation => RECOVERY; boot area intact; reflash PASS
+cut=2 mid-operation => RECOVERY; boot area intact; reflash PASS
+cut=3 after-operation => RECOVERY; boot area intact; reflash PASS
+cut=3 mid-operation => RECOVERY; boot area intact; reflash PASS
+cut=4 after-operation => RECOVERY; boot area intact; reflash PASS
+cut=4 mid-operation => RECOVERY; boot area intact; reflash PASS
+cut=5 after-operation => RECOVERY; boot area intact; reflash PASS
+cut=5 mid-operation => RECOVERY; boot area intact; reflash PASS
+cut=6 after-operation => NEW APP; boot area intact; reflash PASS
+cut=6 mid-operation => RECOVERY; boot area intact; reflash PASS
+13/13 interrupted Flash scenarios passed (software model only)
