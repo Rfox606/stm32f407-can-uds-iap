@@ -17,5 +17,9 @@ jobs:
         run: IAP_UDS_BRIDGE=./build/iap_uds_bridge python3 -m unittest discover -s tests -p test_host_updater.py -v
       - name: M4理论CAN帧数公式回归
         run: python3 -m unittest discover -s tests -p test_estimate_upgrade.py -v
+      - name: M4补充软件报文与中断矩阵
+        run: |
+          ./build/power_cut_matrix
+          ./build/can_frame_trace
       - name: Named scenario summary
         run: ./build/iap_core_test

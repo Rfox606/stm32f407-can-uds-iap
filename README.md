@@ -119,3 +119,7 @@ python3 tools/estimate_upgrade.py 3188
 [M4面试技术复盘](https://github.com/Rfox606/stm32f407-can-uds-iap/issues/4)
 
 项目自主源码使用MIT许可证，`python-can`与`can-isotp`作为外部安装依赖、未将其源码复制到本仓库。所有引用资料与限制见[代码来源记录](docs/07_licenses_and_sources.md)与[最终验收标准](docs/09_项目深度与验收标准.md)。
+
+## M4补充：硬件依据及测试预案
+
+[硬件验证依据与复盘](docs/19_M4_硬件验证依据与复盘.md)：原厂Flash时间和CAN时钟依据、实物接线与排查方案、APP交权验证步骤、第三方公开案例、实际软件报文追踪和13种Flash中断模型。新增软件测试通过不代表实物硬件验证完成。
