@@ -47,10 +47,14 @@ int main(void) {
         isotp_poll(&transport,now);
         uds_boot_tick(&diagnostic,now);
         reply_gate_poll(&response_gate,&transport,bxcan_tx_complete(),now);
+        /* ECUReset reply ACK must be consumed BEFORE staging a new reply. */
+        if (diagnostic.reset_requested && reply_gate_take_ack(&response_gate))
+            bxcan_system_reset();
 
         /* The UDS handler may enter busy_erase/finish/verify, but the actual
          * operation cannot run until its response is confirmed by bxCAN. */
-        if (!diagnostic.busy_erase && !diagnostic.busy_finish && !diagnostic.busy_verify &&
+        if (!diagnostic.reset_requested && !diagnostic.busy_erase &&
+            !diagnostic.busy_finish && !diagnostic.busy_verify &&
             !reply_gate_pending(&response_gate) &&
             isotp_peek(&transport,&request,&request_len)) {
             if (uds_boot_request(&diagnostic,request,request_len,
@@ -76,8 +80,5 @@ int main(void) {
                 (void)reply_gate_stage(&response_gate,response,response_len);
             }
         }
-        /* Never reset before the ECUReset positive response is TXOK. */
-        if (diagnostic.reset_requested && reply_gate_take_ack(&response_gate))
-            bxcan_system_reset();
     }
 }
