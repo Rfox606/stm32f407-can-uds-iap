@@ -26,12 +26,14 @@ for TARGET in boot app; do
       "${ROOT}/ports/stm32f407/src/flash_stm32f407.c" \
       "${ROOT}/src/crc32.c" "${ROOT}/src/image.c" "${ROOT}/src/updater.c" \
       "${ROOT}/protocol/src/isotp.c" "${ROOT}/protocol/src/uds_boot.c" \
+      "${ROOT}/protocol/src/reply_gate.c" \
       "${ROOT}/ports/stm32f407/src/bxcan.c")
   else
     SOURCES+=("${ROOT}/ports/stm32f407/src/app_main.c" \
       "${ROOT}/ports/stm32f407/src/app_uds.c" \
       "${ROOT}/ports/stm32f407/src/bxcan.c" \
       "${ROOT}/protocol/src/isotp.c" \
+      "${ROOT}/protocol/src/reply_gate.c" \
       "${ROOT}/src/crc32.c")
   fi
   echo "==> Building ${TARGET} with ${CC}"

@@ -4,7 +4,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 add_library(iap_core STATIC src/crc32.c src/image.c src/updater.c)
 target_include_directories(iap_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(iap_protocol STATIC protocol/src/isotp.c protocol/src/uds_boot.c)
+add_library(iap_protocol STATIC protocol/src/isotp.c protocol/src/uds_boot.c protocol/src/reply_gate.c)
 target_include_directories(iap_protocol PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/protocol/include)
 target_link_libraries(iap_protocol PUBLIC iap_core)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
@@ -30,12 +30,15 @@ if(BUILD_TESTING)
   target_include_directories(handoff_policy_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ports/stm32f407/include)
 
+  add_executable(reply_gate_test tests/test_reply_gate.c)
+  target_link_libraries(reply_gate_test PRIVATE iap_protocol)
+
   add_executable(iap_uds_bridge tests/uds_bridge.c tests/mock_flash.c)
   target_link_libraries(iap_uds_bridge PRIVATE iap_protocol)
   target_include_directories(iap_uds_bridge PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
   if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
-    foreach(t iap_core_test stm32f407_flash_layout_test m2_protocol_test handoff_policy_test iap_uds_bridge)
+    foreach(t iap_core_test stm32f407_flash_layout_test m2_protocol_test handoff_policy_test reply_gate_test iap_uds_bridge)
       target_compile_options(${t} PRIVATE -Wall -Wextra -Werror -Wpedantic)
     endforeach()
   endif()
@@ -43,6 +46,7 @@ if(BUILD_TESTING)
   add_test(NAME flash_layout COMMAND stm32f407_flash_layout_test)
   add_test(NAME m2_protocol COMMAND m2_protocol_test)
   add_test(NAME handoff_policy COMMAND handoff_policy_test)
+  add_test(NAME reply_gate COMMAND reply_gate_test)
 
   find_package(Python3 COMPONENTS Interpreter REQUIRED)
   add_test(NAME host_updater
