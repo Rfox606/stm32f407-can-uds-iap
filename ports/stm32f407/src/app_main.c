@@ -37,15 +37,16 @@ int main(void) {
             (void)isotp_on_can(&transport,frame,dlc,now);
         isotp_poll(&transport,now);
         reply_gate_poll(&response_gate,&transport,bxcan_tx_complete(),now);
-        if(!reply_gate_pending(&response_gate) &&
+        /* Handoff takes priority over newly arrived diagnostics: otherwise
+         * staging a second reply could clear the already-confirmed 0x50 ACK. */
+        if(app_uds_handoff_pending() && reply_gate_take_ack(&response_gate))
+            boot_handoff_request();
+        if(!app_uds_handoff_pending() && !reply_gate_pending(&response_gate) &&
            isotp_peek(&transport,&req,&req_len)) {
             if(app_uds_request(req,req_len,out,&out_len)==0 && out_len)
                 (void)reply_gate_stage(&response_gate,out,out_len);
             isotp_consume(&transport);
         }
-        /* Do not reset if CAN TX mailbox was busy or response lost. */
-        if(app_uds_handoff_pending() && reply_gate_take_ack(&response_gate))
-            boot_handoff_request();
         if((uint32_t)(now-last_led)>=500u) {
             last_led=now;led_on=!led_on;board_set_led(12u,led_on);
         }
